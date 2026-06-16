@@ -51,13 +51,16 @@ def build_email_body(day_data, days_to_exam):
 
     return subject, body
 
-def send_reminder_email():
+def send_reminder_email(recipient_email=None):
     gmail_id = os.getenv("GMAIL_ID")
     gmail_password = os.getenv("GMAIL_PASSWORD")
 
     if not gmail_id or not gmail_password:
         print("[ERROR] Gmail credentials not found in .env")
         return
+
+    if not recipient_email:
+        recipient_email = gmail_id
 
     try:
         with open("timetable.json", "r") as f:
@@ -71,14 +74,14 @@ def send_reminder_email():
 
         message = MIMEMultipart()
         message["From"] = gmail_id
-        message["To"] = gmail_id
+        message["To"] = recipient_email
         message["Subject"] = subject
 
         message.attach(MIMEText(body, "plain"))
 
         server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
         server.login(gmail_id, gmail_password)
-        server.sendmail(gmail_id, gmail_id, message.as_string())
+        server.sendmail(gmail_id, recipient_email, message.as_string())
         server.quit()
 
         print("[SUCCESS] Email sent! Check your inbox - today's plan is waiting.")

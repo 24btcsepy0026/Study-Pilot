@@ -326,13 +326,22 @@ with tab5:
         st.subheader("📧 Email Reminders")
 
         if os.getenv("GMAIL_ID") and os.getenv("GMAIL_PASSWORD"):
+            recipient_email = st.text_input(
+                "Enter email to receive reminders:",
+                value=os.getenv("GMAIL_ID", ""),
+                help="Leave blank to send to your Gmail ID"
+            )
+
             if st.button("📤 Send Today's Plan via Email", key="send_email"):
-                with st.spinner("Sending email..."):
-                    try:
-                        send_reminder_email()
-                        st.success("✅ Email sent successfully! Check your inbox.")
-                    except Exception as e:
-                        st.error(f"Error sending email: {str(e)}")
+                if not recipient_email:
+                    st.error("❌ Please enter an email address")
+                else:
+                    with st.spinner("Sending email..."):
+                        try:
+                            send_reminder_email(recipient_email)
+                            st.success("✅ Email sent successfully! Check your inbox.")
+                        except Exception as e:
+                            st.error(f"Error sending email: {str(e)}")
         else:
             st.warning("⚠️ Gmail credentials not configured. Add GMAIL_ID and GMAIL_PASSWORD to .env file.")
 
