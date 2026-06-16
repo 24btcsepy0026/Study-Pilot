@@ -155,6 +155,57 @@ def display_timetable(timetable_data):
     print(timetable_data.get("weekly_summary", ""))
     print("="*60 + "\n")
 
+def redistribute_missed_days(timetable_data, missed_day_numbers):
+    if not missed_day_numbers:
+        return timetable_data
+
+    timetable = timetable_data.get("timetable", [])
+    pending_chapters = {}
+
+    for day_num in missed_day_numbers:
+        for day in timetable:
+            if day["day"] == day_num:
+                for slot in day["slots"]:
+                    subject = slot["subject"]
+                    if subject not in pending_chapters:
+                        pending_chapters[subject] = []
+                    pending_chapters[subject].extend(slot.get("chapters_to_cover", []))
+
+    remaining_days = [d for d in timetable if d["day"] not in missed_day_numbers]
+    if not remaining_days:
+        return timetable_data
+
+    for subject, chapters in pending_chapters.items():
+        chapters_per_day = len(chapters) / len(remaining_days) if remaining_days else 0
+        chapters_distributed = 0
+
+        for day in remaining_days:
+            chapters_to_add = chapters[
+                int(chapters_distributed):
+                int(chapters_distributed + chapters_per_day)
+            ]
+
+            if chapters_to_add:
+                for slot in day["slots"]:
+                    if slot["subject"] == subject:
+                        slot["chapters_to_cover"].extend(chapters_to_add)
+                        break
+
+            chapters_distributed += chapters_per_day
+
+    for day in timetable:
+        if day["day"] in missed_day_numbers:
+            day["slots"] = [{
+                "subject": "SKIPPED",
+                "duration_minutes": 0,
+                "chapters_to_cover": [],
+                "notes": "Topics redistributed to other days"
+            }]
+            day["total_study_minutes"] = 0
+
+    return timetable_data
+
+
 def main():
     print("Loading syllabus")
     subjects = load_syllabus()
@@ -176,10 +227,10 @@ def main():
 
     timetable_data = json.loads(cleaned)
     display_timetable(timetable_data)
-    
+
     with open("timetable.json", "w") as f:
         json.dump(timetable_data, f, indent=2)
-    
+
     print("saved to timetable json")
 
 
