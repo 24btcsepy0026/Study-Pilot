@@ -50,48 +50,35 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 with tab1:
     st.header("Upload & Extract Syllabus")
 
-    col1, col2 = st.columns(2)
+    st.subheader("📄 Upload PDF")
+    uploaded_file = st.file_uploader("Upload your syllabus PDF", type="pdf")
 
-    with col1:
-        st.subheader("Option 1: Upload PDF")
-        uploaded_file = st.file_uploader("Upload your syllabus PDF", type="pdf")
+    if uploaded_file is not None:
+        with st.spinner("Processing PDF..."):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                tmp_file.write(uploaded_file.getbuffer())
+                tmp_path = tmp_file.name
 
-        if uploaded_file is not None:
-            with st.spinner("Processing PDF..."):
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                    tmp_file.write(uploaded_file.getbuffer())
-                    tmp_path = tmp_file.name
-
-                try:
-                    st.info("Extracting text from PDF...")
-                    pdf_text = extract_text_from_pdf(tmp_path)
-
-                    st.info("Sending to AI for analysis...")
-                    raw_output = extract_syllabus_data(pdf_text)
-
-                    st.info("Cleaning and parsing response...")
-                    cleaned = clean_json_response(raw_output)
-                    st.session_state.syllabus_data = json.loads(cleaned)
-
-                    with open("syllabus.json", "w", encoding="utf-8") as f:
-                        json.dump(st.session_state.syllabus_data, f, indent=4, ensure_ascii=False)
-
-                    st.success("✅ Syllabus extracted successfully!")
-
-                except Exception as e:
-                    st.error(f"Error processing PDF: {str(e)}")
-                finally:
-                    os.unlink(tmp_path)
-
-    with col2:
-        st.subheader("Option 2: Load Existing")
-        if st.button("📂 Load syllabus.json"):
             try:
-                with open("syllabus.json", "r", encoding="utf-8") as f:
-                    st.session_state.syllabus_data = json.load(f)
-                st.success("✅ Syllabus loaded successfully!")
-            except FileNotFoundError:
-                st.error("syllabus.json not found")
+                st.info("Extracting text from PDF...")
+                pdf_text = extract_text_from_pdf(tmp_path)
+
+                st.info("Sending to AI for analysis...")
+                raw_output = extract_syllabus_data(pdf_text)
+
+                st.info("Cleaning and parsing response...")
+                cleaned = clean_json_response(raw_output)
+                st.session_state.syllabus_data = json.loads(cleaned)
+
+                with open("syllabus.json", "w", encoding="utf-8") as f:
+                    json.dump(st.session_state.syllabus_data, f, indent=4, ensure_ascii=False)
+
+                st.success("✅ Syllabus extracted successfully!")
+
+            except Exception as e:
+                st.error(f"Error processing PDF: {str(e)}")
+            finally:
+                os.unlink(tmp_path)
 
     if st.session_state.syllabus_data:
         st.subheader("Extracted Subjects")
